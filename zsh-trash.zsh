@@ -12,7 +12,6 @@ LIGHT_GREEN='\033[1;32m'
 CLEAR='\033[0m'
 
 PACKAGE_NAME='trash-cli'
-PACKAGE='trash'
 
 function trash::validation {
     if [ ! -x "$(command which node)" ]; then
@@ -42,8 +41,7 @@ function trash::dependences {
 
 function trash::load {
     if [ -x "$(command which trash)" ]; then
-        local package:="${PACKAGE}"
-        alias rm='$package'
+        alias rm='trash'
     fi
 }
 
