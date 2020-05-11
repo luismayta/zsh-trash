@@ -8,45 +8,42 @@
 #   Luis Mayta <slovacus@gmail.com>
 #
 
-LIGHT_GREEN='\033[1;32m'
-CLEAR='\033[0m'
-
-PACKAGE_NAME='trash-cli'
+TRASH_PACKAGE_NAME='trash-cli'
 
 function trash::validation {
-    if [ ! -x "$(command which node)" ]; then
-        echo -e "${CLEAR}${LIGHT_GREEN}is Neccesary Node${CLEAR}"
-    else
-        trash::dependences
+    if ! type -p node > /dev/null; then
+        message_warning "Is neccesary install node"
+        return
     fi
+    trash::dependences
 }
 
 function trash::install {
-    echo -e "${CLEAR}${LIGHT_GREEN}Installing Trash${CLEAR}"
+    message_info "Installing Trash"
     trash::validation
-    yarn global add ${PACKAGE_NAME}
+    yarn global add "${TRASH_PACKAGE_NAME}"
 }
 
 function trash::upgrade {
-    echo -e "${CLEAR}${LIGHT_GREEN}upgrade Trash${CLEAR}"
-    yarn global upgrade ${PACKAGE_NAME}
+    message_info "upgrade Trash"
+    yarn global upgrade "${TRASH_PACKAGE_NAME}"
 }
 
 function trash::dependences {
-    if [ ! -x "$(command which yarn)" ]; then
-        echo -e "${CLEAR}${LIGHT_GREEN}Installing yarn${CLEAR}"
+    if type -p yarn > /dev/null; then
+        message_info "Installing yarn"
         curl -o- -L https://yarnpkg.com/install.sh | bash
     fi
 }
 
 function trash::load {
-    if [ -x "$(command which trash)" ]; then
+    if type -p trash > /dev/null; then
         alias rm='trash'
     fi
 }
 
 trash::load
 
-if [ ! -x "$(command which trash)" ]; then
+if ! type -p trash > /dev/null; then
     trash::install
 fi
