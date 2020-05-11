@@ -17,11 +17,18 @@ else
 	PIPENV_INSTALL:=
 endif
 
-TEAM := private
+TEAM := luismayta
+REPOSITORY_DOMAIN:=github.com
+REPOSITORY_OWNER:=${TEAM}
+AWS_VAULT ?= ${TEAM}
+KEYBASE_OWNER ?= ${TEAM}
+KEYBASE_PATH_TEAM_NAME ?=private
 PROJECT := zsh-trash
-PROJECT_PORT := 8000
+PROJECT_PORT := 3000
 
 PYTHON_VERSION=3.8.0
+NODE_VERSION=v12.14.1
+TERRAFORM_VERSION=0.12.20
 PYENV_NAME="${PROJECT}"
 
 # Configuration.
@@ -33,12 +40,8 @@ SOURCE_DIR=$(ROOT_DIR)/
 PROVISION_DIR:=$(ROOT_DIR)/provision
 FILE_README:=$(ROOT_DIR)/README.rst
 KEYBASE_VOLUME_PATH ?= /Keybase
-KEYBASE_PATH ?= ${KEYBASE_VOLUME_PATH}/team/${TEAM}
-KEYS_PEM_DIR:=${KEYBASE_PATH}/pem
-KEYS_KEY_DIR:=${KEYBASE_PATH}/key
-KEYS_PUB_DIR:=${KEYBASE_PATH}/pub
-KEYS_PRIVATE_DIR:=${KEYBASE_PATH}/private/key_file/${PROJECT}
-PASSWORD_DIR:=${KEYBASE_PATH}/password
+KEYBASE_TEAM_PATH ?=${KEYBASE_VOLUME_PATH}/${KEYBASE_PATH_TEAM_NAME}/${KEYBASE_OWNER}
+KEYBASE_PROJECT_PATH ?= ${KEYBASE_TEAM_PATH}/${REPOSITORY_DOMAIN}/${REPOSITORY_OWNER}/${PROJECT}
 
 PATH_DOCKER_COMPOSE:=docker-compose.yml -f provision/docker-compose
 
@@ -62,35 +65,28 @@ help:
 	@echo ''
 	@echo 'Usage:'
 	@echo '    environment               create environment with pyenv'
-	@echo '    clean                     remove files of build'
 	@echo '    setup                     install requirements'
 	@echo ''
 	@make docker.help
 	@make docs.help
 	@make test.help
+	@make keybase.help
+	@make utils.help
 
-clean:
-	@echo "=====> clean files unnecessary for ${TEAM}..."
-ifneq (Darwin,$(OS))
-	@sudo rm -rf .tox *.egg *.egg-info dist build .coverage .eggs .mypy_cache
-	@sudo rm -rf docs/build
-	@sudo find . -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print -o -name '*.pyo' -delete -print -o -name '*~' -delete -print -o -name '*.tmp' -delete -print
-else
-	@rm -rf .tox *.egg *.egg-info dist build .coverage .eggs .mypy_cache
-	@rm -rf docs/build
-	@find . -name '__pycache__' -delete -print -o -name '*.pyc' -delete -print -o -name '*.pyo' -delete -print -o -name '*~' -delete -print -o -name '*.tmp' -delete -print
-endif
-	@echo "=====> end clean files unnecessary for ${TEAM}..."
-
-setup: clean
+setup:
 	@echo "=====> install packages..."
+	pyenv local ${PYTHON_VERSION}
+	yarn
 	$(PIPENV_INSTALL) --dev --skip-lock
-	$(PIPENV_RUN) pre-commit install && pre-commit install -t pre-push
+	$(PIPENV_RUN) pre-commit install
+	$(PIPENV_RUN) pre-commit install -t pre-push
 	@cp -rf provision/git/hooks/prepare-commit-msg .git/hooks/
-	@[[ -e ".env" ]] || cp -rf .env.example .env
+	@[ -e ".env" ] || cp -rf .env.example .env
 	@echo ${MESSAGE_HAPPY}
 
-environment: clean
+environment:
 	@echo "=====> loading virtualenv ${PYENV_NAME}..."
-	@pipenv --venv || $(PIPENV_INSTALL) --skip-lock --python=${PYTHON_VERSION}
+	pyenv local ${PYTHON_VERSION}
+	make keybase.setup
+	@pipenv --venv || $(PIPENV_INSTALL) --python=${PYTHON_VERSION} --skip-lock
 	@echo ${MESSAGE_HAPPY}
